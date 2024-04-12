@@ -32,16 +32,16 @@ function [psi_opt,phi_in,phi_out] = wavefront_correction(x,y,x_zone,y_zone,r_upd
     
     figure(3)
     subplot 121
-    imagesc(fliplr(interp2(I_init,3,'spline')))
+    imagesc((interp2(I_init,3,'spline')))
     axis image
     colormap('hot')
-    %set(gca,'Visible','off')
+    set(gca,'Visible','off')
 
     delta_M = 1;
     
     r_in = r_update; r_out = r_update.'; r_in_update = r_in; r_out_update = r_out;
     
-    while delta_M > 0.05
+    while delta_M > 0.1
         
         M_prev = M;
 
@@ -62,22 +62,20 @@ function [psi_opt,phi_in,phi_out] = wavefront_correction(x,y,x_zone,y_zone,r_upd
             
             Psi_in(:,ii) = psi(:);
         end
-        % Remove the out-of-zone locations
-        Psi_in_opt = Psi_in;
-        %Psi_in_opt(X < x_zone_min | X > x_zone_max | Y < y_zone_min | Y > y_zone_max,:);
+        
         
         % Optimize inputs
         fprintf("Optimizing inputs.\n")
         opt.algorithm = NLOPT_LD_LBFGS; % Choose LBFGS algorithm
-        my_func = @(c_in) sharpness_figure_of_merit(c_in,Psi_in_opt,Z,FOM);
+        my_func = @(c_in) sharpness_figure_of_merit(c_in,Psi_in,Z,FOM);
         opt.max_objective = @(c_in) my_func(c_in);
         % Convergence criteria of the optimizaton step
         opt.ftol_rel = 1e-4;        
         opt.xtol_rel = 1e-4;   
         opt.maxeval = 500; 
-        opt.verbose = 1;
-        opt.lower_bounds = -5*ones(n_order,1);
-        opt.upper_bounds = 5*ones(n_order,1);
+        opt.verbose = 0;
+        opt.lower_bounds = -2*ones(n_order,1);
+        opt.upper_bounds = 2*ones(n_order,1);
         % Initial guess
         c_init = c_in;
         % Run optimization
@@ -102,13 +100,11 @@ function [psi_opt,phi_in,phi_out] = wavefront_correction(x,y,x_zone,y_zone,r_upd
         
             Psi_out(:,ii) = psi(:);
         end
-        % Remove the out-of-zone locations
-        Psi_out_opt = Psi_out;
-        %Psi_out_opt(X < x_zone_min | X > x_zone_max | Y < y_zone_min | Y > y_zone_max,:);
+        
         
         % Optimize outputs
         fprintf("Optimizing outputs.\n")
-        my_func = @(c_out) sharpness_figure_of_merit(c_out,Psi_out_opt,Z,FOM);
+        my_func = @(c_out) sharpness_figure_of_merit(c_out,Psi_out,Z,FOM);
         opt.max_objective = @(c_out) my_func(c_out);
         % Initial guess
         c_init = c_out;
@@ -122,7 +118,7 @@ function [psi_opt,phi_in,phi_out] = wavefront_correction(x,y,x_zone,y_zone,r_upd
         I = abs(Psi_out*exp(1i*Z*c_out));
         M = fom(I,FOM);
         
-        delta_M = (M-M_prev)/M_prev;
+        delta_M = abs((M-M_prev)/M_prev);
 
     end
     
@@ -131,12 +127,23 @@ function [psi_opt,phi_in,phi_out] = wavefront_correction(x,y,x_zone,y_zone,r_upd
     
     figure(3)
     subplot 122
-    imagesc(fliplr(interp2(abs(psi_opt).^2,3,'spline')));
+    imagesc((interp2(abs(psi_opt).^2,3,'spline')));
     axis image
     colormap('hot')
-    %set(gca,'Visible','off')
+    set(gca,'Visible','off')
     
     phi_in = Z*c_in; phi_out = Z*c_out;
    
-    
+    figure(4)
+    subplot 121
+    imagesc(wrapToPi(reshape(phi_in,Nx,Nx)));
+    axis image
+    colormap(colorcet('C1'))
+    caxis([-pi pi])
+    subplot 122
+    imagesc(wrapToPi(reshape(phi_out,Nx,Nx)));
+    axis image
+    colormap(colorcet('C1'))
+    caxis([-pi pi])
+
 end

@@ -4,23 +4,22 @@ close all
 
 %% 0. Provide the input info
 % Save path 
-path = "/media/minh/WD_BLACK/Chicken breast march 15/Data/";
+path = "/media/minh/My Passport/Chicken breast Apr 8/Data/";
 
 % Reflection matrix
 r = load(""+path+"r.mat").r;
-%r = load("/media/minh/WD_BLACK/SMT 2D B11/Data/r_full.mat").r_full;
 
 % k space
 k = load(""+path+"/k.mat").k;
 kx = k(:,1); ky = k(:,2); fx = kx-kx.'; fy = ky-ky.';
-kmax = max(abs(k),[],'all');
+k_max = 4.1525;%max(abs(k),[],'all');
 
-r(kx.^2+ky.^2 > kmax^2,:) = 0;
-r(:,kx.^2+ky.^2 > kmax^2) = 0;
+r(kx.^2+ky.^2 > k_max^2,:) = 0;
+r(:,kx.^2+ky.^2 > k_max^2) = 0;
 
 % Real space
 L = 51.2;
-dx = 2*pi/(2*kmax); dk = 2*pi/L;
+dx = 2*pi/(2*k_max); dk = 2*pi/L;
 x = 0:dx:L; y = x; Nx = length(x); [X,Y] = meshgrid(x,y); X = single(X(:)); Y = single(Y(:)); 
 x_min = min(x,[],'all'); y_min = x_min;  x_max = max(x,[],'all'); y_max = x_max;
 
@@ -28,23 +27,21 @@ x_min = min(x,[],'all'); y_min = x_min;  x_max = max(x,[],'all'); y_max = x_max;
 FOM = 1;
 
 % For inward optimization, how many inward steps do we want
-n_inward = 8;
+n_inward = 4;
 
 % Then, how many radial orders do we want for this inward optimization
 rad_order_start = 18;
 rad_order_step = 1;
 
 % What is the shrinking criteria for the inward optimization?
-FOM_thres = 0.8;
+FOM_thres = 0.95;
 
 % Do we remove the previous zones in the outward optimization?
 removal = 0;
 
-% How much bigger should an optimized zone be than a progression step  
-d = 2*dx;
-
 % SVD threshold
-svd_thres = 0.25;
+svd_thres = 0.7;
+svd_thres2 = 0.1;
 
 %% 1. Build Zernike polynomials
 Z_list = cell(1,1);
@@ -52,22 +49,22 @@ Z_list = cell(1,1);
 for step_id = 1:n_inward
     fprintf("Building Zernike matrix for the "+step_id+" inward step.\n")
     rad_order = rad_order_start+rad_order_step*(step_id-1);
-    [Z] = build_zernike(kmax,k,rad_order);
-    Z_list{step_id,1} = Z;
+    [Z] = build_zernike(k_max,k,rad_order);
+    Z_list{step_id,1} = Z;       
 end
 
 %% 2. Inward optimization
 I = zeros(Nx,Nx);
 % Do SVD to remove the MS background
 fprintf("Do SVD to remove the multiple scattering background, to improve the inward optimization.\n")
-%[r_svd] = do_svd(r,svd_thres,"angular");
+[r_svd] = do_svd(r,svd_thres,"angular");
 
-r_step = r;%r_svd;
+r_step = r_svd;
 phi_in_init = zeros(Nx^2,1); phi_out_init = zeros(Nx^2,1);
 x_step = x; y_step = y;
 
 for step_id = 1:n_inward
-    
+
     Z = Z_list{step_id,1};
     
     % 2.1. Optimize the image at this step
@@ -119,11 +116,15 @@ for step_id = 1:n_inward
 end
 
 %% See how the FOV would look like if we apply the inward phase to the entire FOV
-% Manually reshift the image into the FOV
-x_shift = 0; y_shift = 0;
-x_step_min_shift = x_step_min-x_shift; x_step_max_shift = x_step_max-x_shift;
-y_step_min_shift = y_step_min-y_shift; y_step_max_shift = y_step_max-y_shift;
-r_shift = r.*exp(1i*(-kx.')*x_shift+1i*(-ky.')*y_shift);
+[r_svd2] = do_svd(r,svd_thres2,"angular");
+
+% If for some reasons, the optimization shift the image transversely, manually reshift the image back
+x_shift = 0; y_shift = 0; 
+n = 5; % Compared to the final image size in the inward step, the progression step is how many pixels smaller?
+d = 4*dx; % Compared to the progression step, the outward optimization zone is how much bigger?
+x_step_min_shift = x_step_min-x_shift+n*dx; x_step_max_shift = x_step_max-x_shift-n*dx;
+y_step_min_shift = y_step_min-y_shift+n*dx; y_step_max_shift = y_step_max-y_shift-n*dx;
+r_shift = r_svd2.*exp(1i*(-kx.')*x_shift+1i*(-ky.')*y_shift);
 r_shift = exp(1i*kx*x_shift+1i*ky*y_shift).*r_shift;
 
 r_test = exp(1i*phi_out_init).*r_shift.*exp(1i*phi_in_init.');
@@ -145,8 +146,21 @@ end
 I_test = abs(psi_test).^2;
 I_test = reshape(I_test,Nx,Nx);
 
+% The stitching mask parameter
+d_stitch = d+progression_step_by_2/2;
+
+% build the stitching mask for the inward zone
+[stitch_mask] = build_stitching_mask(d_stitch, x_center, y_center, x, y);
+
+% Build mask
+x0 = 23; y0 = 21; % Central of the mask
+wx0 = 15; wy0 = 15; % Width
+rho = 0;
+[gauss_mask] = build_mask(x,y,wx0,wy0,x0,y0,rho);
+gauss_mask = reshape(gauss_mask,Nx,Nx);
+
 figure(2)
-imagesc(fliplr(interp2(I_test,3,'spline')))
+imagesc(fliplr(interp2(I_test.*gauss_mask.^1,3,'spline')))
 axis image
 colormap('hot')
 
@@ -155,14 +169,10 @@ mask = zeros(Nx^2,1);
 mask(X >= x_step_min_shift & X <= x_step_max_shift & Y >= y_step_min_shift & Y <= y_step_max_shift) = 1;
 psi = psi_test.*reshape(mask,Nx,Nx);
 
-figure(1)
-imagesc(fliplr(interp2(abs(psi).^2,3,'spline')))
-axis image
-colormap('hot')
 
-%% 3. Prepare for the outward optimization
+% 3. Prepare for the outward optimization
 % 3.1. Now the size of the progression step will be determined as
-progression_step_size = (x_step_max_shift-x_step_min_shift);
+progression_step_by_2 = (x_step_max_shift-x_step_min_shift);
 
 % 3.2. Number of zone in the first outward step
 n_zone = 4;
@@ -186,14 +196,14 @@ zone_prev_list = ones(4,2);
 x_prev = cell(1,1); y_prev = cell(1,1);
 x_prev{1,1} = x_step; y_prev{1,1} = y_step;
 
-% 3.7. Zoning for the first outward optimization
+% 3.7. Zoning for the first outward optimization3
 % Coordinates of each zones
 list_x_zone = cell(1,1); list_y_zone = cell(1,1);
 for zone_id = 1:n_zone
     x_center = center_list(zone_id,1); y_center = center_list(zone_id,2);
     
-    x_zone = max(x_center-progression_step_size/2,x_min):dx:min(x_center+progression_step_size/2,x_max);
-    y_zone = max(y_center-progression_step_size/2,y_min):dx:min(y_center+progression_step_size/2,y_max);
+    x_zone = max(x_center-progression_step_by_2/2,x_min):dx:min(x_center+progression_step_by_2/2,x_max);
+    y_zone = max(y_center-progression_step_by_2/2,y_min):dx:min(y_center+progression_step_by_2/2,y_max);
         
     list_x_zone{zone_id,1} = x_zone; list_y_zone{zone_id,1} = y_zone;
 end
@@ -201,25 +211,25 @@ end
 % Start counting the outward step from here
 out_step = 0;
 
-I_total = I;
+% Initialize the total image
+I_total = I_test.*stitch_mask;
 
 %% 4.Outward optimization, just run it until we are satisfied with the image
-n = -5;
-while n_zone > 0% n_zone > 0
+while 1 % Run until an error terminates the loop or when the number of zones is zeros
     out_step = out_step+1;
-
+    Z = Z_list{4,1};
     % 4.1. Optimizing each zone
     phi_zone_list = cell(1,1);
     
-    if_do_svd = 0;
-    svd_thres = 0.5; FOM = 1;
-    a = 1;
+    FOM = 1;
+    if_do_svd = 0; 
+    svd_thres = 0.3;
     for zone_id = 1:n_zone
-        d = 4*dx;
         % 4.1.1. Zone coordinate before scaling up
         x_zone = list_x_zone{zone_id,1}; y_zone = list_y_zone{zone_id,1};
         x_zone_min = min(x_zone,[],'all'); x_zone_max = max(x_zone,[],'all'); y_zone_min = min(y_zone,[],'all'); y_zone_max = max(y_zone,[],'all');
-
+        x_center = center_list(zone_id,1); y_center = center_list(zone_id,2);
+        
         % 4.1.2. Initial guess
         zone_prev_1 = zone_prev_list(zone_id,1); zone_prev_2 = zone_prev_list(zone_id,2);
         phi_in_zone_init = (phi_prev{zone_prev_1,1}+phi_prev{zone_prev_2,1})/2; 
@@ -260,24 +270,26 @@ while n_zone > 0% n_zone > 0
         % 4.1.4. Remove the overlap area with the previous zones then put the 
         % zone image to the image of the big FOV
         I_zone = abs(psi_zone).^2;
-        %psi_total = psi_total+a*psi_zone;
-        I_total = I_total+I_zone;%abs(psi_total).^2;
+        % build stitching mask
+        [stitch_mask] = build_stitching_mask(d_stitch, x_center, y_center, x, y);
+        psi_total = psi_total+psi_zone;
+        I_total = I_total+I_zone.*stitch_mask;% 
 
         % Build mask
-        x0 = 35; y0 = 22; % Central of the mask
-        wx0 = 16; wy0 = 20; % Width
+        x0 = 30; y0 = 20; % Central of the mask
+        wx0 = 25; wy0 = 25; % Width
         rho = 0;
         [gauss_mask] = build_mask(x,y,wx0,wy0,x0,y0,rho);
         gauss_mask = reshape(gauss_mask,Nx,Nx);
 
-        I0 = max(I_total.*gauss_mask.^1,[],'all');
+        I_show = fliplr(interp2(I_total.*gauss_mask.^1,3,'spline'));
 
         figure(1)
-        imagesc((interp2(I_total.*gauss_mask.^1,3,'spline')))
+        imagesc(I_show)
         axis image
         colormap('hot')
         set(gca,'Visible','off')
-        caxis([0 0.8]*I0)
+        caxis([0 max(I_show,[],'all')])
 
     end
 
@@ -332,31 +344,31 @@ while n_zone > 0% n_zone > 0
             for ii = 1:4
                 switch ii
                     case 1
-                        x_center_new = x_center-round(progression_step_size/2/dx)*dx;
-                        y_center_new = y_center-round(progression_step_size/2/dx)*dx;
+                        x_center_new = x_center-round(progression_step_by_2/2/dx)*dx;
+                        y_center_new = y_center-round(progression_step_by_2/2/dx)*dx;
                     case 2
-                        x_center_new = x_center+round(progression_step_size/2/dx)*dx;
-                        y_center_new = y_center-round(progression_step_size/2/dx)*dx;
+                        x_center_new = x_center+round(progression_step_by_2/2/dx)*dx;
+                        y_center_new = y_center-round(progression_step_by_2/2/dx)*dx;
                     case 3
-                        x_center_new = x_center+round(progression_step_size/2/dx)*dx;
-                        y_center_new = y_center+round(progression_step_size/2/dx)*dx;
+                        x_center_new = x_center+round(progression_step_by_2/2/dx)*dx;
+                        y_center_new = y_center+round(progression_step_by_2/2/dx)*dx;
                     case 4
-                        x_center_new = x_center-round(progression_step_size/2/dx)*dx;
-                        y_center_new = y_center+round(progression_step_size/2/dx)*dx;
+                        x_center_new = x_center-round(progression_step_by_2/2/dx)*dx;
+                        y_center_new = y_center+round(progression_step_by_2/2/dx)*dx;
                 end
 
                 % 4.2.1.3. Then, check if the the new center is in the outward direction. If
                 % the new center belongs to the older zone then it's not the
                 % outward direction
                 if (x_center_new < x_opt_min | x_center_new > x_opt_max) | (y_center_new < y_opt_min | y_center_new > y_opt_max)
-                    x_zone_min_new = max(min(x_center_new:-dx:x_center_new-progression_step_size/2),x_min);
-                    x_zone_max_new = min(max(x_center_new:dx:x_center_new+progression_step_size/2),x_max);
-                    y_zone_min_new = max(min(y_center_new:-dx:y_center_new-progression_step_size/2),y_min);
-                    y_zone_max_new = min(max(y_center_new:dx:y_center_new+progression_step_size/2),y_max);
+                    x_zone_min_new = max(min(x_center_new:-dx:x_center_new-progression_step_by_2/2),x_min);
+                    x_zone_max_new = min(max(x_center_new:dx:x_center_new+progression_step_by_2/2),x_max);
+                    y_zone_min_new = max(min(y_center_new:-dx:y_center_new-progression_step_by_2/2),y_min);
+                    y_zone_max_new = min(max(y_center_new:dx:y_center_new+progression_step_by_2/2),y_max);
 
                     lx_zone_new = x_zone_max_new-x_zone_min_new; ly_zone_new = y_zone_max_new-y_zone_min_new;
 
-                    if x_center_new > n*dx & x_center_new < L-n*dx & y_center_new > n*dx & y_center_new < L-n*dx
+                    if x_center_new > 0 & x_center_new < L & y_center_new > 0 & y_center_new < L
                         center_list_and_prev_zones_new = vertcat(center_list_and_prev_zones_new,...
                                         [x_center_new y_center_new zone_id]);
                     end
@@ -389,10 +401,10 @@ while n_zone > 0% n_zone > 0
     list_x_zone = cell(1,1); list_y_zone = cell(1,1); zone_prev_list = zeros(n_zone,2);
     for zone_id = 1:n_zone
         x_center = center_list(zone_id,1); y_center = center_list(zone_id,2);
-        x_zone_min = max(min(x_center:-dx:x_center-progression_step_size/2),x_min);
-        x_zone_max = min(max(x_center:dx:x_center+progression_step_size/2),x_max);
-        y_zone_min = max(min(y_center:-dx:y_center-progression_step_size/2),y_min);
-        y_zone_max = min(max(y_center:dx:y_center+progression_step_size/2),y_max);
+        x_zone_min = max(min(x_center:-dx:x_center-progression_step_by_2/2),x_min);
+        x_zone_max = min(max(x_center:dx:x_center+progression_step_by_2/2),x_max);
+        y_zone_min = max(min(y_center:-dx:y_center-progression_step_by_2/2),y_min);
+        y_zone_max = min(max(y_center:dx:y_center+progression_step_by_2/2),y_max);
         x_zone = x_zone_min:dx:x_zone_max; y_zone = y_zone_min:dx:y_zone_max;
         list_x_zone{zone_id,1} = x_zone; list_y_zone{zone_id,1} = y_zone; 
     end
@@ -413,5 +425,9 @@ while n_zone > 0% n_zone > 0
         end
     end
 
-    save(""+path+"I_io_no_svd.mat",'I_total')
+    save(""+path+"I_io_no_svd_2.mat",'I_total')
+    
+    if n_zone == 0
+        break
+    end
 end

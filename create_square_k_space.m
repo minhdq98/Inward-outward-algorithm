@@ -1,9 +1,10 @@
-path = "/media/minh/WD_BLACK/Chicken breast march 15/Data/";
+path = "/media/minh/My Passport/Chicken breast Apr 8/Data/";
 
-r = load("/media/minh/WD_BLACK/Chicken breast march 15/Data/r_z_2D_2.mat").r_z;
+r = load("/media/minh/My Passport/Chicken breast Apr 8/Data/r_z_2D.mat").r_z;
 % k space
-k = single(load("/media/minh/WD_BLACK/Chicken breast march 15/k.mat").k);
-k_max = max(sqrt(k(:,1).^2+k(:,2).^2),[],'all'); N = length(k);
+k = single(load("/media/minh/My Passport/Chicken breast Apr 8/k.mat").k);
+k_max = max(sqrt(k(:,1).^2+k(:,2).^2),[],'all'); 
+N = length(k);
 kx = k(:,1); ky = k(:,2);
 N = length(k);
 
@@ -18,8 +19,12 @@ kx_new = -k_max+dk/2:dk:k_max; ky_new = kx_new;
 kx_new = single(Kx_new(:)); ky_new = single(Ky_new(:)); 
 N_new = length(kx_new);
 
-%% Convert inputs to spatial basis
+% Convert inputs to spatial basis
 fprintf("Convert inputs to spatial basis.\n")
+NA = 0.5;
+r(:,kx.^2+ky.^2 >= (k_max*NA/0.5)^2) = 0;
+r(kx.^2+ky.^2 >= (k_max*NA/0.5)^2,:) = 0;
+
 r_k_r = single(zeros(N,Nx^2));
 for ii = 1:N
     r_k_r(ii,:) = finufft2d3(ky,kx,r(ii,:).',-1,1e-2,Y,X).'/Nx;
@@ -32,7 +37,7 @@ for ii = 1:Nx^2
 end
 
 %% Remove off-diagonal
-w = 10;
+w = 15;
 for ii = 1:Nx^2
     x_in = X(ii); y_in = Y(ii);
     window = zeros(Nx^2,1);
@@ -41,16 +46,16 @@ for ii = 1:Nx^2
 
 end
 
-% Remove reflection of the objective lens at the edge of the image
-x_min = x(1); x_max = x(end); y_min = y(1); y_max = y(end);
-d_remove = 0*dx;
-r_r(X <= d_remove | X >= L-d_remove | Y <= d_remove | Y >= L-d_remove,:) = 0;
-r_r(:,X <= d_remove | X >= L-d_remove | Y <= d_remove | Y >= L-d_remove) = 0;
 
-% SVD
-[u,s,v] = svd(r_r);
-N_sv = 400;
-r_r = u(:,1:N_sv)*s(1:N_sv,1:N_sv)*v(:,1:N_sv)';
+psi = diag(r_r); I = abs(psi).^2; I = reshape(I,Nx,Nx);
+
+figure
+imagesc(fliplr(interp2(I,3,'spline')))
+axis image
+colormap('hot')
+%%
+[u,s,v] = svds(double(r_r),450);
+r_r = single(u*s*v');
 
 %% Convert the inputs back to angular basis
 fprintf("Convert the inputs back to angular basis.\n")
@@ -84,7 +89,7 @@ save(""+path+"k.mat",'k','dx')
 fprintf("Convert the inputs back to angular basis.\n")
 r_r_k = single(zeros(Nx^2,N));
 for ii = 1:Nx^2
-    r_r_k(ii,:) = finufft2d3(Y,X,r_r(ii,:).',1,1e-2,kyr_,kx)/Nx;
+    r_r_k(ii,:) = finufft2d3(Y,X,r_r(ii,:).',1,1e-2,ky,kx)/Nx;
 end
 % Convert the outputs back to angular basis
 fprintf("Convert the outputs back to angular basis.\n")
