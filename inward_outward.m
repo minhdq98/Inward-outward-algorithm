@@ -171,7 +171,7 @@ progression_step_by_2 = (x_step_max_shift-x_step_min_shift);
 d_stitch = d+progression_step_by_2/2;
 
 % build the stitching mask for the inward zone
-[stitch_mask] = build_stitching_mask(d_stitch, x_center, y_center, x, y);
+[stitch_mask] = build_stitching_mask(d_stitch, X(ii_sharp), Y(ii_sharp), x, y);
 
 % 3.2. Number of zone in the first outward step
 n_zone = 4;
