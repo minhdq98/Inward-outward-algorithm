@@ -146,12 +146,6 @@ end
 I_test = abs(psi_test).^2;
 I_test = reshape(I_test,Nx,Nx);
 
-% The stitching mask parameter
-d_stitch = d+progression_step_by_2/2;
-
-% build the stitching mask for the inward zone
-[stitch_mask] = build_stitching_mask(d_stitch, x_center, y_center, x, y);
-
 % Build mask
 x0 = 23; y0 = 21; % Central of the mask
 wx0 = 15; wy0 = 15; % Width
@@ -172,6 +166,12 @@ psi = psi_test.*reshape(mask,Nx,Nx);
 % 3. Prepare for the outward optimization
 % 3.1. Now the size of the progression step will be determined as
 progression_step_by_2 = (x_step_max_shift-x_step_min_shift);
+
+% The stitching mask parameter
+d_stitch = d+progression_step_by_2/2;
+
+% build the stitching mask for the inward zone
+[stitch_mask] = build_stitching_mask(d_stitch, x_center, y_center, x, y);
 
 % 3.2. Number of zone in the first outward step
 n_zone = 4;
@@ -424,7 +424,7 @@ while 1 % Run until an error terminates the loop or when the number of zones is 
         end
     end
 
-    save(""+path+"I_io_no_svd_2.mat",'I_total')
+    save(""+path+"I_io.mat",'I_total')
     
     if n_zone == 0
         break
