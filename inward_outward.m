@@ -11,8 +11,8 @@ r = load(""+path+"r.mat").r;
 
 % k space
 k = load(""+path+"/k.mat").k;
-kx = k(:,1); ky = k(:,2); fx = kx-kx.'; fy = ky-ky.';
-k_max = 4.1525;%max(abs(k),[],'all');
+kx = k(:,1); ky = k(:,2);
+k_max = 4.1525;
 
 r(kx.^2+ky.^2 > k_max^2,:) = 0;
 r(:,kx.^2+ky.^2 > k_max^2) = 0;
