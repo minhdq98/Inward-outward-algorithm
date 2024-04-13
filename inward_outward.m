@@ -120,8 +120,8 @@ end
 
 % If for some reasons, the optimization shift the image transversely, manually reshift the image back
 x_shift = 0; y_shift = 0; 
-n = 5; % Compared to the final image size in the inward step, the progression step is how many pixels smaller?
-d = 4*dx; % Compared to the progression step, the outward optimization zone is how much bigger?
+n = 6; % Compared to the final image size in the inward step, the progression step is how many pixels smaller?
+d = 5*dx; % Compared to the progression step, the outward optimization zone is how much bigger?
 x_step_min_shift = x_step_min-x_shift+n*dx; x_step_max_shift = x_step_max-x_shift-n*dx;
 y_step_min_shift = y_step_min-y_shift+n*dx; y_step_max_shift = y_step_max-y_shift-n*dx;
 r_shift = r_svd2.*exp(1i*(-kx.')*x_shift+1i*(-ky.')*y_shift);
@@ -168,7 +168,6 @@ colormap('hot')
 mask = zeros(Nx^2,1);
 mask(X >= x_step_min_shift & X <= x_step_max_shift & Y >= y_step_min_shift & Y <= y_step_max_shift) = 1;
 psi = psi_test.*reshape(mask,Nx,Nx);
-
 
 % 3. Prepare for the outward optimization
 % 3.1. Now the size of the progression step will be determined as
@@ -217,7 +216,7 @@ I_total = I_test.*stitch_mask;
 %% 4.Outward optimization, just run it until we are satisfied with the image
 while 1 % Run until an error terminates the loop or when the number of zones is zeros
     out_step = out_step+1;
-    Z = Z_list{4,1};
+
     % 4.1. Optimizing each zone
     phi_zone_list = cell(1,1);
     
