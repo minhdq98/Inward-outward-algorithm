@@ -11,8 +11,8 @@ r = load(""+path+"r.mat").r;
 
 % k space
 k = load(""+path+"/k.mat").k;
-kx = k(:,1); ky = k(:,2);
-k_max = 4.1525;
+kx = k(:,1); ky = k(:,2); 
+k_max = 4.1525;%max(abs(k),[],'all');
 
 r(kx.^2+ky.^2 > k_max^2,:) = 0;
 r(:,kx.^2+ky.^2 > k_max^2) = 0;
@@ -27,7 +27,7 @@ x_min = min(x,[],'all'); y_min = x_min;  x_max = max(x,[],'all'); y_max = x_max;
 FOM = 1;
 
 % For inward optimization, how many inward steps do we want
-n_inward = 4;
+n_inward = 12;
 
 % Then, how many radial orders do we want for this inward optimization
 rad_order_start = 18;
@@ -120,8 +120,8 @@ end
 
 % If for some reasons, the optimization shift the image transversely, manually reshift the image back
 x_shift = 0; y_shift = 0; 
-n = 6; % Compared to the final image size in the inward step, the progression step is how many pixels smaller?
-d = 5*dx; % Compared to the progression step, the outward optimization zone is how much bigger?
+n = 0; % Compared to the final image size in the inward step, the progression step is how many pixels smaller?
+d = 4*dx; % Compared to the progression step, the outward optimization zone is how much bigger?
 x_step_min_shift = x_step_min-x_shift+n*dx; x_step_max_shift = x_step_max-x_shift-n*dx;
 y_step_min_shift = y_step_min-y_shift+n*dx; y_step_max_shift = y_step_max-y_shift-n*dx;
 r_shift = r_svd2.*exp(1i*(-kx.')*x_shift+1i*(-ky.')*y_shift);
@@ -214,7 +214,7 @@ out_step = 0;
 I_total = I_test.*stitch_mask;
 
 %% 4.Outward optimization, just run it until we are satisfied with the image
-while 1 % Run until an error terminates the loop or when the number of zones is zeros
+while out_step < 10 % Run until the image is good enough
     out_step = out_step+1;
 
     % 4.1. Optimizing each zone
@@ -274,13 +274,13 @@ while 1 % Run until an error terminates the loop or when the number of zones is 
         I_total = I_total+I_zone.*stitch_mask;% 
 
         % Build mask
-        x0 = 30; y0 = 20; % Central of the mask
-        wx0 = 25; wy0 = 25; % Width
+        x0 = 27; y0 = 20; % Central of the mask
+        wx0 = 22; wy0 = 22; % Width
         rho = 0;
         [gauss_mask] = build_mask(x,y,wx0,wy0,x0,y0,rho);
         gauss_mask = reshape(gauss_mask,Nx,Nx);
 
-        I_show = fliplr(interp2(I_total.*gauss_mask.^1,3,'spline'));
+        I_show = fliplr(interp2(I_total.*gauss_mask,3,'spline'));
 
         figure(1)
         imagesc(I_show)
