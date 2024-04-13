@@ -271,7 +271,6 @@ while 1 % Run until an error terminates the loop or when the number of zones is 
         I_zone = abs(psi_zone).^2;
         % build stitching mask
         [stitch_mask] = build_stitching_mask(d_stitch, x_center, y_center, x, y);
-        psi_total = psi_total+psi_zone;
         I_total = I_total+I_zone.*stitch_mask;% 
 
         % Build mask
