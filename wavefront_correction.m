@@ -115,7 +115,7 @@ function [psi_opt,phi_in,phi_out] = wavefront_correction(x,y,x_zone,y_zone,r_upd
         r_in_update = exp(1i*Z*c_out).*r_in;
         
         % Check the FOM
-        I = abs(Psi_out*exp(1i*Z*c_out));
+        I = abs(Psi_out*exp(1i*Z*c_out)).^2;
         M = fom(I,FOM);
         
         delta_M = abs((M-M_prev)/M_prev);
