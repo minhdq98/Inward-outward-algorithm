@@ -68,7 +68,7 @@ for step_id = 1:n_inward
     Z = Z_list{step_id,1};
     
     % 2.1. Optimize the image at this step
-    fprintf("Beging "+step_id+"th inward optimization.\n")
+    fprintf("Begin "+step_id+"th inward optimization.\n")
     [psi_step,phi_in_step,phi_out_step] = wavefront_correction(x,y,x_step,y_step,r_step,k,Z,FOM);
     fprintf("Done "+step_id+"th inward optimization.\n")
     
@@ -88,7 +88,7 @@ for step_id = 1:n_inward
 
         % 2.2. Determine the size of the area surrounding the sharpest spot,
         % where FOM is lower than FOM_thres*M_prev
-        fprintf("Beging finding IP size for the "+step_id+"th inward optimization.\n")
+        fprintf("Begin finding IP size for the "+step_id+"th inward optimization.\n")
         ii = 1;
         x_step_min = max(0,x_sharp-ii*dx); y_step_min = max(0,y_sharp-ii*dx);
         x_step_max = min(L,x_sharp+ii*dx); y_step_max = min(L,y_sharp+ii*dx);
