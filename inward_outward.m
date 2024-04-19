@@ -36,9 +36,6 @@ rad_order_step = 1;
 % What is the shrinking criteria for the inward optimization?
 FOM_thres = 0.95;
 
-% Do we remove the previous zones in the outward optimization?
-removal = 0;
-
 % SVD threshold
 svd_thres = 0.7;
 svd_thres2 = 0.1;
