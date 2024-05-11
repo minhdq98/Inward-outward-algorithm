@@ -218,10 +218,7 @@ while 1 % Run until the image is good enough
 
     % 4.1. Optimizing each zone
     phi_zone_list = cell(1,1);
-    
-    FOM = 1;
-    if_do_svd = 0; 
-    svd_thres = 0.3;
+
     for zone_id = 1:n_zone
         % 4.1.1. Zone coordinate before scaling up
         x_zone = list_x_zone{zone_id,1}; y_zone = list_y_zone{zone_id,1};
