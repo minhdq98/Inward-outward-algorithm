@@ -245,7 +245,7 @@ while 1 % Run until the image is good enough
 
         % 4.1.3.2. Spatial basis truncation
         fprintf("Do spatial basis truncation before optimizing zone "+zone_id+" out of "+n_zone+" zones in the "+out_step+" outward step.\n")
-        [r_zone] = spatial_basis_truncation(X,Y,x_zone_scale,y_zone_scale,r_zone,if_do_svd,svd_thres);
+        [r_zone] = spatial_basis_truncation(X,Y,x_zone_scale,y_zone_scale,r_zone,0,svd_thres);
         fprintf("Done spatial basis truncation before optimizing zone "+zone_id+" out of "+n_zone+" zones in the "+out_step+" outward step.\n")
 
         % 4.1.3.3. Optimize the zone
