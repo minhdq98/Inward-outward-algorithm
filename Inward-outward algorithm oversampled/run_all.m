@@ -4,7 +4,7 @@ close all
 
 %% 0. Provide the input info
 % Save path 
-path = "/media/minh/My Passport/Chicken breast Apr 8/Data/";
+path = "/media/minh/HDD2 5TB/Chicken breast Apr 8/Data/";
 
 % Reflection matrix
 r = load(""+path+"r.mat").r;
@@ -12,7 +12,7 @@ r = load(""+path+"r.mat").r;
 % k space
 k = load(""+path+"/k.mat").k;
 kx = k(:,1); ky = k(:,2); 
-k_max = 4.1525;%max(abs(k),[],'all');
+k_max = 4.1525;
 
 r(kx.^2+ky.^2 > k_max^2,:) = 0;
 r(:,kx.^2+ky.^2 > k_max^2) = 0;
@@ -27,14 +27,14 @@ x_min = min(x,[],'all'); y_min = x_min;  x_max = max(x,[],'all'); y_max = x_max;
 FOM = 1;
 
 % For inward optimization, how many inward steps do we want
-n_inward = 12;
+n_inward = 10;
 
 % Then, how many radial orders do we want for this inward optimization
 rad_order_start = 18;
 rad_order_step = 1;
 
 % What is the shrinking criteria for the inward optimization?
-FOM_thres = 0.95;
+FOM_thres = 0.8;
 
 % SVD threshold
 svd_thres = 0.7;
@@ -117,12 +117,13 @@ end
 % the optimization specifically to the best zone. Now we lower the
 % threshold since the previous threshold will also remove the darker
 % targets far away from the best zone
+fprintf("Do SVD to remove the multiple scattering background, to improve the outward optimization.\n")
 [r_svd2] = do_svd(r,svd_thres2,"angular");
 
 % If for some reasons, the optimization shift the image transversely, manually reshift the image back
 x_shift = 0; y_shift = 0; 
-n = 4; % Compared to the final image size in the inward step, the progression step is how many pixels smaller?
-d = 4*dx; % Compared to the progression step, the outward optimization zone is how much bigger?
+n = 0; % Compared to the final image size in the inward step, the progression step is how many pixels smaller?
+d = 8*dx; % Compared to the progression step, the outward optimization zone is how much bigger?
 x_step_min_shift = x_step_min-x_shift+n*dx; x_step_max_shift = x_step_max-x_shift-n*dx;
 y_step_min_shift = y_step_min-y_shift+n*dx; y_step_max_shift = y_step_max-y_shift-n*dx;
 r_shift = r_svd2.*exp(1i*(-kx.')*x_shift+1i*(-ky.')*y_shift);
@@ -270,12 +271,14 @@ while 1 % Run until the image is good enough
         axis image
         colormap('hot')
         set(gca,'Visible','off')
-        caxis([0 max(I_show,[],'all')])
 
     end
 
-    % Update the range of the optimized region
+    % The x/y_opt_min/max denotes the edge of the optimized region.
+    % These are the edge of the optimized region in the previous outward
+    % step
     x_opt_min = x_max; x_opt_max = x_min; y_opt_min = y_max; y_opt_max = y_min;
+    % Now, we update the edge of the optimization in this step
     for zone_id = 1:n_zone
         x_zone = list_x_zone{zone_id,1}; y_zone = list_y_zone{zone_id,1};
         x_zone_min = min(x_zone,[],'all'); x_zone_max = max(x_zone,[],'all');

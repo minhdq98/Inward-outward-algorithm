@@ -12,7 +12,7 @@ function [psi_opt,phi_in,phi_out] = wavefront_correction(x,y,x_zone,y_zone,r_upd
     
     % Build pre-optimization image
     psi_init = single(zeros(Nx,Nx));
-    for ii = 1:Nx^2
+    parfor ii = 1:Nx^2
         k_in_x = kx(ii); k_in_y = ky(ii);
         % Convert outputs to spatial basis
         r_update_ii = reshape(r_update(:,ii),Nx,Nx);
@@ -44,8 +44,8 @@ function [psi_opt,phi_in,phi_out] = wavefront_correction(x,y,x_zone,y_zone,r_upd
 
         % Build Psi_in matrix
         fprintf("Building Psi_in.\n")
-        Psi_in = single(zeros(Nx^2,N));
-        for ii = 1:Nx^2
+        Psi_in = single(zeros(Nx^2,Nx^2));
+        parfor ii = 1:Nx^2
             k_in_x = kx(ii); k_in_y = ky(ii);
             % Convert outputs to spatial basis
             r_update_ii = reshape(r_in_update(:,ii),Nx,Nx);
@@ -63,8 +63,8 @@ function [psi_opt,phi_in,phi_out] = wavefront_correction(x,y,x_zone,y_zone,r_upd
         my_func = @(c_in) sharpness_figure_of_merit(c_in,Psi_in,Z,FOM);
         opt.max_objective = @(c_in) my_func(c_in);
         % Convergence criteria of the optimizaton step
-        opt.ftol_rel = 1e-4;        
-        opt.xtol_rel = 1e-4;   
+        opt.ftol_rel = 1e-2;        
+        opt.xtol_rel = 1e-2;   
         opt.maxeval = 500; 
         opt.verbose = 0;
         opt.lower_bounds = -2*ones(n_order,1);
@@ -79,8 +79,8 @@ function [psi_opt,phi_in,phi_out] = wavefront_correction(x,y,x_zone,y_zone,r_upd
         
         % Build Psi_out matrix
         fprintf("Building Psi_out. \n")
-        Psi_out = single(zeros(Nx^2,N));
-        for ii = 1:Nx^2
+        Psi_out = single(zeros(Nx^2,Nx^2));
+        parfor ii = 1:Nx^2
             k_out_x = kx(ii); k_out_y = ky(ii);
             % Convert inputs to spatial basis
             r_update_ii = reshape(r_out_update(:,ii),Nx,Nx);

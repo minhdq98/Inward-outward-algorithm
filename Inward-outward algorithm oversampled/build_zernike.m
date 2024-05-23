@@ -1,6 +1,6 @@
 % This function builds the Zernike wavefront matrices
 function [Z] =  build_zernike(kmax,k,rad_order)
-    %% 1. Build the Zernike matrix for reconstruction
+    % 1. Build the Zernike matrix for reconstruction
     
     % 1.1. Build the normalized polar k space
     n1 = length(k);
@@ -35,7 +35,7 @@ function [Z] =  build_zernike(kmax,k,rad_order)
     n_order = length(order); % The number of Zernike polynomials
     % 1.2.2. Build matrix
     Z = zeros(n1,n_order);
-    for jj = 1:n1
+    parfor jj = 1:n1
         rho = k_norm_pol(jj,1);
         theta = k_norm_pol(jj,2);
         m = order(:,1);

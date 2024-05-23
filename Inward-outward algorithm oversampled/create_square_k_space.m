@@ -1,8 +1,8 @@
-path = "/media/minh/My Passport/Chicken breast Apr 8/Data/";
+path = "/media/minh/HDD2 5TB/Chicken breast Apr 8/Data/";
 
-r = load("/media/minh/My Passport/Chicken breast Apr 8/Data/r_z_2D.mat").r_z;
+r = load("/media/minh/HDD2 5TB/Chicken breast Apr 8/Data/r_z_2D.mat").r_z;
 % k space
-k = single(load("/media/minh/My Passport/Chicken breast Apr 8/k.mat").k);
+k = single(load("/media/minh/HDD2 5TB/Chicken breast Apr 8/k.mat").k);
 k_max = max(sqrt(k(:,1).^2+k(:,2).^2),[],'all'); 
 N = length(k);
 kx = k(:,1); ky = k(:,2);
@@ -53,7 +53,7 @@ figure
 imagesc(fliplr(interp2(I,3,'spline')))
 axis image
 colormap('hot')
-%%
+
 [u,s,v] = svds(double(r_r),450);
 r_r = single(u*s*v');
 
