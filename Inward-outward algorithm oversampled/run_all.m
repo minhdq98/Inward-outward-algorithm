@@ -118,7 +118,7 @@ n = 0; % Compared to the final image size in the inward step, the progression st
 d = 8*dx; % Compared to the progression step, the outward optimization zone is how much bigger?
 x_step_min_shift = x_step_min-x_shift+n*dx; x_step_max_shift = x_step_max-x_shift-n*dx;
 y_step_min_shift = y_step_min-y_shift+n*dx; y_step_max_shift = y_step_max-y_shift-n*dx;
-r_shift = r_svd2.*exp(1i*(-kx.')*x_shift+1i*(-ky.')*y_shift);
+r_shift = r.*exp(1i*(-kx.')*x_shift+1i*(-ky.')*y_shift);
 r_shift = exp(1i*kx*x_shift+1i*ky*y_shift).*r_shift;
 
 r_test = exp(1i*phi_out_init).*r_shift.*exp(1i*phi_in_init.');
