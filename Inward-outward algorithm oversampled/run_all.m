@@ -38,7 +38,6 @@ FOM_thres = 0.8;
 
 % SVD threshold
 svd_thres = 0.7;
-svd_thres2 = 0.1;
 
 %% 1. Build Zernike polynomials
 Z_list = cell(1,1);
@@ -113,13 +112,6 @@ for step_id = 1:n_inward
 end
 
 %% See how the FOV would look like if we apply the inward phase to the entire FOV
-% Do a second SVD. In the previous SVD, the threshold is higher to focus
-% the optimization specifically to the best zone. Now we lower the
-% threshold since the previous threshold will also remove the darker
-% targets far away from the best zone
-fprintf("Do SVD to remove the multiple scattering background, to improve the outward optimization.\n")
-[r_svd2] = do_svd(r,svd_thres2,"angular");
-
 % If for some reasons, the optimization shift the image transversely, manually reshift the image back
 x_shift = 0; y_shift = 0; 
 n = 0; % Compared to the final image size in the inward step, the progression step is how many pixels smaller?
